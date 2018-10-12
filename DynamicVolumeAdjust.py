@@ -38,8 +38,9 @@ elif _platform == "win32" or _platform == "win64":
 
 #config
 duration = 10*3600  # run duration in seconds
-th = 2.5        #threshold
-interval = 0.666    #update interval and also the fate in/out time
+th = 2.666        #threshold
+interval = 0.333    #update interval and also the fate in/out time
+cd = 2
 
 if _platform == "linux" or _platform == "linux2":
     # linux
@@ -61,32 +62,42 @@ fState = 0
 pState = fState
 avgVolume = 0
 frameCount = 0
+cdTimer = 0
 
 def print_sound(indata, outdata, frames, time, status):
-    global t1, t2, dt, fState, pState, frameCount, avgVolume
-    global th, interval, minVolume, maxVolume
+    global t1, t2, dt, fState, pState, frameCount, avgVolume, cdTimer
+    global th, interval, minVolume, maxVolume, cd
     
     volume_norm = np.linalg.norm(indata)*10
     print "|" * int(volume_norm) 
     print "avgVolume: " + str(avgVolume)
+    print "cdTimer: " + str(cdTimer)
 
     ct = timer.time()
     t2 = ct
+    dft = t2 - t1
     dt += t2 - t1
     print("dt: "+ str(dt))
     t1 = t2
     
 
     
-    if avgVolume > th and dt > interval:
+    if avgVolume > th and dt > interval and cdTimer <= 0:
         pState = fState
         fState = -1
         dt = 0
         frameCount = 1 
         avgVolume = volume_norm
-    elif avgVolume <= th  and dt > interval:
+        cdTimer = cd
+    elif avgVolume <= th  and dt > interval and cdTimer <= 0:
         pState = fState
         fState = 1
+        dt = 0
+        frameCount = 1 
+        avgVolume = volume_norm
+        cdTimer = cd
+    elif dt > interval and cdTimer > 0:
+        pState = fState
         dt = 0
         frameCount = 1 
         avgVolume = volume_norm
@@ -95,7 +106,8 @@ def print_sound(indata, outdata, frames, time, status):
         frameCount += 1
         normalizedDeltaVolume = dt/interval * (maxVolume - minVolume)
         print "normalizedDeltaVolume: "+ str(normalizedDeltaVolume)
-
+        if cdTimer > 0:
+            cdTimer -= dft
         if _platform == "linux" or _platform == "linux2":
             # linux
             pass
