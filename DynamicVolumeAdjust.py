@@ -24,7 +24,6 @@ from subprocess import Popen,PIPE,STDOUT,call
 
 from sys import platform as _platform
 
-
 def get_speaker_output_volume():
     if _platform == "linux" or _platform == "linux2":
         pass
@@ -58,9 +57,12 @@ elif _platform == "win32" or _platform == "win64":
     volume = cast(interface, POINTER(IAudioEndpointVolume))
 
 #config
+verbose = False
 duration = 10*3600  # run duration in seconds
 th = 2.5        #threshold
 interval = 0.666    #update interval and also the fate in/out time
+
+
 
 if _platform == "linux" or _platform == "linux2":
     # linux
@@ -87,13 +89,15 @@ def print_sound(indata, outdata, frames, time, status):
     global th, interval, minVolume, maxVolume
     
     volume_norm = np.linalg.norm(indata)*10
-    print "|" * int(volume_norm) 
-    print "avgVolume: " + str(avgVolume)
+    if verbose:
+        print "|" * int(volume_norm) 
+        print "avgVolume: " + str(avgVolume)
 
     ct = timer.time()
     t2 = ct
     dt += t2 - t1
-    print("dt: "+ str(dt))
+    if verbose:
+        print("dt: "+ str(dt))
     t1 = t2
     
 
@@ -114,7 +118,8 @@ def print_sound(indata, outdata, frames, time, status):
         avgVolume = (avgVolume * frameCount + volume_norm) / (frameCount + 1)
         frameCount += 1
         normalizedDeltaVolume = dt/interval * (maxVolume - minVolume)
-        print "normalizedDeltaVolume: "+ str(normalizedDeltaVolume)
+        if verbose:
+            print "normalizedDeltaVolume: "+ str(normalizedDeltaVolume)
 
         if _platform == "linux" or _platform == "linux2":
             # linux
@@ -126,10 +131,12 @@ def print_sound(indata, outdata, frames, time, status):
                 sa.set_volume(minVolume + normalizedDeltaVolume)
         elif _platform == "win32" or _platform == "win64":
             if fState < 0 and pState != fState:
-                print "current volume: "+str(maxVolume - normalizedDeltaVolume)
+                if verbose:
+                    print "current volume: "+str(maxVolume - normalizedDeltaVolume)
                 volume.SetMasterVolumeLevel(maxVolume - normalizedDeltaVolume, None)
             if fState > 0 and pState != fState:
-                print "current volume: "+str(minVolume + normalizedDeltaVolume)
+                if verbose:
+                    print "current volume: "+str(minVolume + normalizedDeltaVolume)
                 volume.SetMasterVolumeLevel(minVolume + normalizedDeltaVolume, None)
                 
             
